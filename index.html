@@ -15,8 +15,8 @@ Probando código para analizar algunos rulos (arbitraje) en cripto. Datos en tie
 <table border="1" cellpadding="6">
   <tr>
     <th>Rulo</th>
-    <th>Resultado</th>
-    <th>Estado</th>
+    <th>Par</th>
+    <th>Precio</th>
   </tr>
   <tbody id="tabla"></tbody>
 </table>
@@ -25,28 +25,20 @@ Probando código para analizar algunos rulos (arbitraje) en cripto. Datos en tie
 const rulos = [
   {
     nombre: "USDT → LTC → BTC → USDT",
-    a: "LTCUSDT",
-    b: "LTCBTC",
-    c: "BTCUSDT"
+    pares: ["LTCUSDT", "LTCBTC", "BTCUSDT"]
   },
   {
     nombre: "USDT → DOGE → BTC → USDT",
-    a: "DOGEUSDT",
-    b: "DOGEBTC",
-    c: "BTCUSDT"
+    pares: ["DOGEUSDT", "DOGEBTC", "BTCUSDT"]
   },
   {
     nombre: "USDT → TRX → BTC → USDT",
-    a: "TRXUSDT",
-    b: "TRXBTC",
-    c: "BTCUSDT"
+    pares: ["TRXUSDT", "TRXBTC", "BTCUSDT"]
   }
 ];
 
 async function precio(symbol) {
-  const r = await fetch(
-    `https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`
-  );
+  const r = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`);
   const d = await r.json();
   return parseFloat(d.price);
 }
@@ -55,28 +47,62 @@ async function calcular() {
   const tbody = document.getElementById("tabla");
   tbody.innerHTML = "";
 
-  for (const r of rulos) {
-    const p1 = await precio(r.a);
-    const p2 = await precio(r.b);
-    const p3 = await precio(r.c);
+  for (const rulo of rulos) {
+    const precios = [];
+    for (const par of rulo.pares) {
+      const p = await precio(par);
+      precios.push(p);
+    }
 
-    const res = (p2 * p3) / p1;
+    // Calcular rulo
+    const resultadoRulo = (precios[1] * precios[2]) / precios[0];
+    const ganancia = (resultadoRulo - 1) * 100;
+    const estado = resultadoRulo > 1 ? "HAY RULO" : "NO CONVIENE";
 
-    const fila = document.createElement("tr");
-    fila.innerHTML = `
-      <td>${r.nombre}</td>
-      <td>${res.toFixed(6)}</td>
-      <td style="color:${res > 1 ? 'green' : 'red'}">
-        ${res > 1 ? 'HAY RULO' : 'NO CONVIENE'}
-      </td>
+    // Mostrar cada par
+    for (let i = 0; i < rulo.pares.length; i++) {
+      const fila = document.createElement("tr");
+      fila.innerHTML = `
+        <td>${i === 0 ? rulo.nombre : ""}</td>
+        <td>${rulo.pares[i]}</td>
+        <td>${precios[i]}</td>
+      `;
+      tbody.appendChild(fila);
+    }
+
+    // Fila resumen
+    const filaResumen = document.createElement("tr");
+    filaResumen.innerHTML = `
+      <td colspan="2" style="font-weight:bold">Resultado rulo</td>
+      <td>${resultadoRulo.toFixed(9)}</td>
     `;
-    tbody.appendChild(fila);
+    tbody.appendChild(filaResumen);
+
+    const filaEstado = document.createElement("tr");
+    filaEstado.innerHTML = `
+      <td colspan="2" style="font-weight:bold">Estado</td>
+      <td style="color:${resultadoRulo>1 ? 'green':'red'}">${estado}</td>
+    `;
+    tbody.appendChild(filaEstado);
+
+    const filaGanancia = document.createElement("tr");
+    filaGanancia.innerHTML = `
+      <td colspan="2" style="font-weight:bold">Ganancia %</td>
+      <td>${ganancia.toFixed(6)}</td>
+    `;
+    tbody.appendChild(filaGanancia);
+
+    // Separador visual
+    const sep = document.createElement("tr");
+    sep.innerHTML = `<td colspan="3">&nbsp;</td>`;
+    tbody.appendChild(sep);
   }
 }
 
 calcular();
-setInterval(calcular, 20000);
+setInterval(calcular, 20000); // actualizar cada 20s
 </script>
 
 </body>
 </html>
+
