@@ -1,2 +1,82 @@
 # rulos-cripto
 Probando código para analizar algunos rulos (arbitraje) en cripto. Datos en tiempo real (o eso tratamos) de los pares de Binance
+
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Comparador de Arbitraje</title>
+</head>
+<body>
+
+<h2>Arbitraje Cripto</h2>
+
+<table border="1" cellpadding="6">
+  <tr>
+    <th>Rulo</th>
+    <th>Resultado</th>
+    <th>Estado</th>
+  </tr>
+  <tbody id="tabla"></tbody>
+</table>
+
+<script>
+const rulos = [
+  {
+    nombre: "USDT → LTC → BTC → USDT",
+    a: "LTCUSDT",
+    b: "LTCBTC",
+    c: "BTCUSDT"
+  },
+  {
+    nombre: "USDT → DOGE → BTC → USDT",
+    a: "DOGEUSDT",
+    b: "DOGEBTC",
+    c: "BTCUSDT"
+  },
+  {
+    nombre: "USDT → TRX → BTC → USDT",
+    a: "TRXUSDT",
+    b: "TRXBTC",
+    c: "BTCUSDT"
+  }
+];
+
+async function precio(symbol) {
+  const r = await fetch(
+    `https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`
+  );
+  const d = await r.json();
+  return parseFloat(d.price);
+}
+
+async function calcular() {
+  const tbody = document.getElementById("tabla");
+  tbody.innerHTML = "";
+
+  for (const r of rulos) {
+    const p1 = await precio(r.a);
+    const p2 = await precio(r.b);
+    const p3 = await precio(r.c);
+
+    const res = (p2 * p3) / p1;
+
+    const fila = document.createElement("tr");
+    fila.innerHTML = `
+      <td>${r.nombre}</td>
+      <td>${res.toFixed(6)}</td>
+      <td style="color:${res > 1 ? 'green' : 'red'}">
+        ${res > 1 ? 'HAY RULO' : 'NO CONVIENE'}
+      </td>
+    `;
+    tbody.appendChild(fila);
+  }
+}
+
+calcular();
+setInterval(calcular, 20000);
+</script>
+
+</body>
+</html>
